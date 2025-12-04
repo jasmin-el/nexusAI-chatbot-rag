@@ -1,0 +1,7 @@
+django>=4.0
+python-dotenv
+langchain-openai
+langchain-community
+langchain-text-splitters
+pinecone
+pypdf
