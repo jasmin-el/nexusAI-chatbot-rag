@@ -9,7 +9,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rag_chatbot.settings')
 django.setup()
 
 from django.test import RequestFactory
-from chat.views import get_conversations, get_messages, chat_view
+from chat.views import get_conversations, get_messages
 from chat.models import Conversation, Message
 
 def test():
@@ -41,4 +41,4 @@ def test():
     print("All API tests passed!")
 
 if __name__ == "__main__":
-    test_api()
+    test()
