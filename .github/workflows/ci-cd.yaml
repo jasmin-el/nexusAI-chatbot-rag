@@ -1,0 +1,71 @@
+name: RAG Chatbot CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+      - release
+      - main
+
+jobs:
+
+  test:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Django tests
+        run: python manage.py test
+
+  preprod:
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    environment: preprod
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Django tests
+        run: python manage.py test
+
+  prod:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: preprod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Django tests
+        run: python manage.py test
+
+      - name: Deploy to PROD
+        run: |
+          echo "Deploying RAG Chatbot to PROD"
+          # Example: ssh user@server "cd /app && git pull && source venv/bin/activate && pip install -r requirements.txt && python manage.py migrate && systemctl restart gunicorn"
