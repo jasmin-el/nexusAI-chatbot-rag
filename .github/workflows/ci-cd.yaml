@@ -13,6 +13,7 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     environment: test
+
     steps:
       - uses: actions/checkout@v4
 
@@ -31,7 +32,7 @@ jobs:
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     environment: preprod
-    needs: test
+
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +51,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
-    needs: preprod
+
     steps:
       - uses: actions/checkout@v4
 
@@ -66,6 +67,4 @@ jobs:
         run: python manage.py test
 
       - name: Deploy to PROD
-        run: |
-          echo "Deploying RAG Chatbot to PROD"
-          # Example: ssh user@server "cd /app && git pull && source venv/bin/activate && pip install -r requirements.txt && python manage.py migrate && systemctl restart gunicorn"
+        run: echo "Deploying RAG Chatbot to PROD"
