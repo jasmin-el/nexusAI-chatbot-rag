@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+# Load environment variables from .env file
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,7 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'chat',
+    # Custom applications
+    'chat',  # RAG chatbot application
 ]
 
 MIDDLEWARE = [
@@ -74,8 +76,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'rag_chatbot.wsgi.application'
 
 
-# Database
+# Database Configuration
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# Using MySQL with credentials from environment variables
 
 DATABASES = {
     'default': {
@@ -125,6 +128,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media files (User-uploaded documents)
+# These settings configure where uploaded documents are stored
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

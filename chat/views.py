@@ -1,3 +1,9 @@
+"""Django views for the RAG Chatbot application.
+
+This module contains all view functions and API endpoints for the chat interface,
+including message handling, document upload, and conversation management.
+"""
+
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -12,6 +18,29 @@ from .rag_service import rag_service
 
 @ensure_csrf_cookie
 def chat_view(request, conversation_id=None):
+    """Handle chat interface rendering and message processing.
+    
+    This view serves dual purposes:
+    - GET: Renders the chat interface HTML template
+    - POST: Processes user messages and returns AI-generated responses
+    
+    The POST handler also manages conversation creation, title generation,
+    and delegates to upload_document() when files are present.
+    
+    Args:
+        request (HttpRequest): Django request object
+        conversation_id (int, optional): ID of existing conversation to load
+        
+    Returns:
+        GET: HttpResponse with rendered chat.html template
+        POST: JsonResponse with:
+            - response (str): AI-generated response text
+            - conversation_id (int): ID of the conversation
+            
+    Raises:
+        400 Bad Request: If message is missing in POST body
+        500 Internal Server Error: If AI response generation fails
+    """
     if request.method == 'POST':
         # Handle file upload
         if request.FILES.get('document'):
@@ -73,6 +102,23 @@ def chat_view(request, conversation_id=None):
 
 
 def upload_document(request):
+    """Handle document upload and ingestion into RAG knowledge base.
+    
+    Accepts PDF or TXT files, saves them to media storage, and triggers
+    the RAG service to process, embed, and index the document chunks.
+    
+    Args:
+        request (HttpRequest): Django request object with file in FILES
+        
+    Returns:
+        JsonResponse with:
+            - message (str): Success message with chunk count
+            
+    Raises:
+        400 Bad Request: If no document provided
+        405 Method Not Allowed: If request method is not POST
+        500 Internal Server Error: If file processing fails or unsupported file type
+    """
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests allowed'}, status=405)
     
@@ -90,6 +136,22 @@ def upload_document(request):
 
 
 def get_conversations(request):
+    """Retrieve list of all conversations ordered by most recent.
+    
+    Returns all conversations with their metadata, including auto-generated
+    titles if not already set. Used to populate the conversation sidebar.
+    
+    Args:
+        request (HttpRequest): Django request object
+        
+    Returns:
+        JsonResponse with:
+            - conversations (list): List of conversation objects, each containing:
+                - id (int): Conversation ID
+                - title (str): Conversation title
+                - created_at (str): Creation timestamp (MM/DD HH:MM)
+                - updated_at (str): Last update timestamp (MM/DD HH:MM)
+    """
     conversations = Conversation.objects.all().order_by('-updated_at')
     data = []
 
@@ -105,24 +167,63 @@ def get_conversations(request):
         data.append({
             'id': c.id,
             'title': title,
-            'created_at': c.created_at.strftime("%m/%d %H:%M"),
-            'updated_at': c.updated_at.strftime("%m/%d %H:%M")
+            'created_at': c.created_at.isoformat(),
+            'updated_at': c.updated_at.isoformat()
         })
 
     return JsonResponse({'conversations': data})
 
 
 def get_messages(request, conversation_id):
+    """Retrieve all messages for a specific conversation.
+    
+    Returns messages in chronological order for display in the chat interface.
+    
+    Args:
+        request (HttpRequest): Django request object
+        conversation_id (int): ID of the conversation to retrieve
+        
+    Returns:
+        JsonResponse with:
+            - messages (list): List of message objects, each containing:
+                - role (str): Either 'user' or 'ai'
+                - content (str): Message text content
+                - timestamp (str): ISO formatted creation time
+                
+    Raises:
+        404 Not Found: If conversation with given ID doesn't exist
+    """
     try:
         conversation = Conversation.objects.get(id=conversation_id)
         messages = conversation.messages.all().order_by('created_at')
-        data = [{'role': m.role, 'content': m.content} for m in messages]
+        data = [{
+            'role': m.role, 
+            'content': m.content,
+            'timestamp': m.created_at.isoformat()
+        } for m in messages]
         return JsonResponse({'messages': data})
     except Conversation.DoesNotExist:
         return JsonResponse({'error': 'Conversation not found'}, status=404)
 
 
 def delete_conversation(request, conversation_id):
+    """Delete a conversation and all its associated messages.
+    
+    Permanently removes a conversation from the database. All messages
+    are cascade-deleted due to the foreign key relationship.
+    
+    Args:
+        request (HttpRequest): Django request object
+        conversation_id (int): ID of the conversation to delete
+        
+    Returns:
+        JsonResponse with:
+            - success (bool): True if deletion succeeded
+            
+    Raises:
+        404 Not Found: If conversation with given ID doesn't exist
+        405 Method Not Allowed: If request method is not DELETE
+    """
     if request.method == 'DELETE':
         try:
             conversation = Conversation.objects.get(id=conversation_id)
